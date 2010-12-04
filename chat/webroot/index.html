@@ -1,0 +1,71 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>chat</title>
+</head>
+<body>
+<script src="jquery-latest.min.js"></script> 
+<script src="jquery.cookie.js"></script> 
+<script src="http://localhost:8124/socket.io/socket.io.js"></script> 
+<script>
+ var socket = new io.Socket('localhost', {port: 8124});
+ var defaultName;
+ socket.on('connect', function(){
+//     console.log('connected');
+ }) 
+ socket.on('message', function(data){
+     if ( data.type == 'system' ) {
+         defaultName = '名無しさん@' + data.clientId;
+         var user = $.cookie('user');
+         if (!user) {
+             user = defaultName;
+         }
+         $('#name').val(user);
+     } else if ( data.type == 'message' ) {
+         var html = $('#statuses').html();
+         $('#statuses').html(
+            '<span style="color:#666">'+data.time+'</span> '
+            +'<span style="color:#009900">'+data.user+'</span> '
+            + $('<div></div>').text(data.text).html() + '<br />' + html
+         );
+     } else {
+        throw 'Unknown message: ' + data;
+     }
+ }) 
+ socket.on('disconnect', function(){
+//     console.log('disconnected');
+ }) 
+ socket.connect();
+ $(function(){
+     $('#message_form').submit(function(e){
+         var msg = $('#message').val();
+         var user = $('#name').val();
+         if (!user) {
+             user = defaultName;
+             $('#name').val(user);
+         }
+         $.cookie('user', user, {expires:1});
+         socket.send({
+             'text': msg,
+             'user': user
+         });
+         $('#message').val('');
+         return false;
+     });
+ });
+</script> 
+<form action="#" method="get" id="message_form">
+<table border="0">
+<tr>
+<td>名前</td>
+<td><input type="text" id="name" value="" style="width:20em" /></td>
+</tr>
+<tr>
+<td>メッセージ</td>
+<td><input type="text" id="message" style="width:30em" /></td>
+</tr>
+</table>
+<input type="submit">
+</form>
+<div id="statuses"></div>
+</body></html>
